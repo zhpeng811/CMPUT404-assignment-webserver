@@ -36,7 +36,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             # first element is the content type and second element is the content
             200: 'HTTP/1.1 200 OK\r\nContent-Type:{}\r\n{}\r\n',
             # first element is the redirect address
-            301: 'HTTP/1.1 301 Moved Permanently\r\n{}\r\n',
+            301: 'HTTP/1.1 301 Moved Permanently\r\nLocation: {}\r\n\r\n',
             404: 'HTTP/1.1 404 Not Found\r\nFile not found!\r\n',
             405: 'HTTP/1.1 405 Method Not Allowed\r\nThe specific request method is not allowed\r\n',
             505: 'HTTP/1.1 505 HTTP Version Not Support\r\nThe specific HTTP version is not supported\r\n'
@@ -79,7 +79,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        
         info = self.parse_data()
         
         # by default the response will be 404 not found error
@@ -91,11 +90,14 @@ class MyWebServer(socketserver.BaseRequestHandler):
             response = self.responses[405]
         else:
             if path.isdir(info["path"]):
-                if info["path"].endswith("/"):
-                    file_content = self.get_file_content(info["path"] + "index.html")
-                    response = self.responses[200].format("text/html", file_content) 
-                else:
-                    response = self.responses[301].format(info["path"] + "/")
+                if not info["path"].endswith("/"):
+                    info["path"] += "/"
+                    response = self.responses[301].format(info["path"])
+                    # 301 redirect response will be send separately
+                    self.request.sendall(response.encode('utf-8'))
+
+                file_content = self.get_file_content(info["path"] + "index.html")
+                response = self.responses[200].format("text/html", file_content) 
             elif path.isfile(info["path"]):
                 file_type = info["path"].split(".")[-1]
                 if (file_type in self.MIME_TYPES):
