@@ -64,7 +64,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
             info = {
                 'method': args[0],
                 # as per assignment requirement: "The webserver can serve files from ./www"
-                'path': path.abspath("www" + args[1]),
+                'path': args[1],
+                'file': args[1],
                 'protocol': args[2]
             }
             return info
@@ -83,16 +84,16 @@ class MyWebServer(socketserver.BaseRequestHandler):
         
         # by default the response will be 404 not found error
         response = self.responses[404]
-
+        print("path: ", info["path"])
         if info["protocol"] != "HTTP/1.1":
             response = self.responses[505]
         elif info["method"] != "GET":
             response = self.responses[405]
         else:
             if path.isdir(info["path"]):
+                print("here")
                 if not info["path"].endswith("/"):
-                    info["path"] += "/"
-                    response = self.responses[301].format(info["path"])
+                    response = self.responses[301].format(info["file"] + "/")
                     # 301 redirect response will be send separately
                     self.request.sendall(response.encode('utf-8'))
 
@@ -100,9 +101,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 response = self.responses[200].format("text/html", file_content) 
             elif path.isfile(info["path"]):
                 file_type = info["path"].split(".")[-1]
-                if (file_type in self.MIME_TYPES):
-                    file_content = self.get_file_content(info["path"])
-                    response = self.responses[200].format("text/" + file_type, file_content) 
+                if (file_type not in self.MIME_TYPES):
+                    file_type = 'plain'
+
+                file_content = self.get_file_content(info["path"])
+                response = self.responses[200].format("text/" + file_type, file_content) 
         
         self.request.sendall(response.encode('utf-8'))
     
