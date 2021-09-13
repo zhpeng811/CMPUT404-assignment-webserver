@@ -69,7 +69,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         info = {
             'method': args[0],
             # as per assignment requirement: "The webserver can serve files from ./www"
-            'path': "www" + args[1],
+            'path': path.abspath("www") + args[1],
             'file': args[1],
             'protocol': args[2]
         }
@@ -104,7 +104,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # by default the response will be 404 not found error
         response = self.responses[404]
 
-        print(info["path"])
         if info["protocol"] != "HTTP/1.1":
             response = self.responses[505]
         elif info["method"] != "GET":
@@ -114,7 +113,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 # requirement: "Must use 301 to correct path ending"
                 if not info["path"].endswith("/"):
                     response = self.responses[301].format(info["file"] + "/")
-                else:
+                elif path.isfile(info["path"] + "index.html"):
                     # requirement: "The webserver can return index.html from directories"
                     file_content = self.get_file_content(info["path"] + "index.html")
                     response = self.responses[200].format("text/html", file_content) 
@@ -124,7 +123,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     file_content = self.get_file_content(info["path"])
                     response = self.responses[200].format("text/" + file_type, file_content) 
 
-        print(response)
         self.request.sendall(response.encode('utf-8'))
     
 if __name__ == "__main__":
