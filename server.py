@@ -33,6 +33,11 @@ from os import path # https://docs.python.org/3.6/library/os.path.html#module-os
 
 class MyWebServer(socketserver.BaseRequestHandler):
     def setup(self):
+        """
+        setup function provided by the socketserver module
+        setup the responses for all the status codes
+        and list the valid mime types
+        """
         self.responses = {
             # first element is the content type and second element is the content
             200: 'HTTP/1.1 200 OK\r\nContent-Type: {}\r\n\r\n{}\r\n',
@@ -42,11 +47,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
             405: 'HTTP/1.1 405 Method Not Allowed\r\nThe specific request method is not allowed\r\n',
             505: 'HTTP/1.1 505 HTTP Version Not Support\r\nThe specific HTTP version is not supported\r\n'
         }
+
+        # requirements: The webserver supports mime-types for HTML and CSS
         self.MIME_TYPES = ["css", "html"]
 
     def parse_data(self):
         """
-        Parse the received data by decoding, splitting by lines
+        Parse the received data by decoding and splitting by lines
         and seperating each line by its ":" delimiter into key and values
         
         Returns:
@@ -55,9 +62,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
             method: the HTTP request method and header (e.g. 'GET')
             path: the requested path (e.g. '/')
             protocol: the HTTP protocol (e.g. 'HTTP/1.1')
-        
-        Raises:
-            SystemError: An error occured when the recieved data is None
         """
 
         # only the first element contains useful information needed
@@ -72,12 +76,26 @@ class MyWebServer(socketserver.BaseRequestHandler):
         return info
 
     def get_file_content(self, file_path):
+        """
+        Get the content of the file by opening and reading the file
+        
+        Args:
+            file_path: the path of the file to read
+        
+        Returns:
+            a string that contains the content of the file
+        """
         file = open(file_path, 'r')
         content = file.read()
         file.close()
         return content
 
     def handle(self):
+        """
+        handle function provided by the socketserver module
+        the function will first parse the request to obtain request information,
+        and provide appriate responses based on the user request
+        """
         self.data = self.request.recv(1024).strip()
         if not self.data:
             return
@@ -92,9 +110,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
             response = self.responses[405]
         else:
             if path.isdir(info["path"]):
+                # requirement: "Must use 301 to correct path ending)"
                 if not info["path"].endswith("/"):
                     response = self.responses[301].format(info["file"] + "/")
                 else:
+                    # requirement: "The webserver can return index.html from directories"
                     file_content = self.get_file_content(info["path"] + "index.html")
                     response = self.responses[200].format("text/html", file_content) 
             elif path.isfile(info["path"]):
