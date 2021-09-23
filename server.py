@@ -43,9 +43,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
             200: 'HTTP/1.1 200 OK\r\nContent-Type: {}\r\n\r\n{}\r\n',
             # first element is the redirect address
             301: 'HTTP/1.1 301 Moved Permanently\r\nLocation: {}\r\n\r\n',
-            404: 'HTTP/1.1 404 Not Found\r\nFile not found!\r\n',
-            405: 'HTTP/1.1 405 Method Not Allowed\r\nThe specific request method is not allowed\r\n',
-            505: 'HTTP/1.1 505 HTTP Version Not Support\r\nThe specific HTTP version is not supported\r\n'
+            404: 'HTTP/1.1 404 Not Found\r\n\r\n404 Error! File not found!\r\n',
+            405: 'HTTP/1.1 405 Method Not Allowed\r\n\r\nThe specific request method is not allowed\r\n',
+            505: 'HTTP/1.1 505 HTTP Version Not Support\r\n\r\nThe specific HTTP version is not supported\r\n'
         }
 
         # requirements: The webserver supports mime-types for HTML and CSS
@@ -119,9 +119,14 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     response = self.responses[200].format("text/html", file_content) 
             elif path.isfile(info["path"]):
                 file_type = info["path"].split(".")[-1]
-                if (file_type in self.MIME_TYPES):
+                if (file_type not in self.MIME_TYPES):
+                    file_type = "application/octet-stream"
+                else:
+                    file_type = "text/" + file_type
+                
+                if path.exists(info["path"]) and "www" in path.abspath(info["path"]):
                     file_content = self.get_file_content(info["path"])
-                    response = self.responses[200].format("text/" + file_type, file_content) 
+                    response = self.responses[200].format(file_type, file_content)
 
         self.request.sendall(response.encode('utf-8'))
     
