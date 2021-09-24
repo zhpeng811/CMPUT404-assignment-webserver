@@ -96,7 +96,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         the function will first parse the request to obtain request information,
         and provide appriate responses based on the user request
         """
-        self.data = self.request.recv(1024).strip()
+        self.data = self.request.recv(4096).strip()
         if not self.data:
             return
         info = self.parse_data()
